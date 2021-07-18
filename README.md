@@ -1,4 +1,7 @@
 # @haaretz/cz-htz
+A commitizen adapter for Haaretz frontend with autodetection of affected
+monorepo packages (with Lerna) and linked ClickUp task integration.
+
 
 ## Installation
 
@@ -7,6 +10,14 @@ yarn add --dev @haaretz/cz-htz
 # or
 npm install --save-dev @haaretz/cz-htz
 ```
+
+The default export is the commitizen adapter. The default times can be imported
+from `defaultTypes.js`:
+
+```js
+const types = require('@haaretz/cz-htz/defaultTypes');
+```
+
 
 ## Configuration
 
