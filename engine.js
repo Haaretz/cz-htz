@@ -1,9 +1,45 @@
 'format cjs';
 
+var path = require('path');
+var { execSync, } = require('child_process');
 var wrap = require('word-wrap');
 var map = require('lodash.map');
-var longest = require('longest');
 var chalk = require('chalk');
+var autocompletePropmpt = require('inquirer-autocomplete-prompt');
+
+const doubleWidthEmojis = [
+  'build',
+  'ci',
+  'chore',
+  'revert',
+  'peerDependencies',
+];
+
+const changedFiles = execSync(
+  'git diff --cached --name-only',
+  { encoding: 'utf8', stdio: 'pipe', }
+).split('\n').map(path.normalize);
+
+const packagesInfo = JSON.parse(execSync(
+  'lerna list --json',
+  { encoding: 'utf8', stdio: 'pipe', }
+));
+
+const changedPkgs = packagesInfo
+  .filter(({ location, }) => {
+    const pkgPrefix = path.relative('.', location) + path.sep;
+    for (const changedFile of changedFiles) {
+      if (changedFile.indexOf(pkgPrefix) === 0) return true;
+    }
+    return false;
+  })
+  .map(pkg => pkg.name);
+
+
+const allPackages =  packagesInfo.map(pkg => ({
+  name: pkg.name,
+  checked: changedPkgs.includes(pkg.name),
+}));
 
 var filter = function(array) {
   return array.filter(function(x) {
@@ -38,14 +74,31 @@ var filterSubject = function(subject, disableSubjectLowerCase) {
 // fine.
 module.exports = function(options) {
   var types = options.types;
-
-  var length = longest(Object.keys(types)).length + 1;
   var choices = map(types, function(type, key) {
     return {
-      name: (key + ':').padEnd(length) + ' ' + type.description,
-      value: key
+      name: (`${type.emoji}${doubleWidthEmojis.includes(key) ? '  ' : ' '}${type.title}: ${type.description}`),
+      value: type.value,
     };
   });
+
+  function searchTypes(answers, input) {
+    input = input ?? '';
+    return new Promise(resolve => {
+      const results = choices
+        .filter(choice => {
+          if (!input) return true;
+          return choice.value.toLowerCase().includes(input.toLowerCase());
+        })
+        // Put results that start with input before ones that include it
+        .sort((a, b) => {
+          const aWeight = a.value.startsWith(input) ? 0 : 1;
+          const bWeight = b.value.startsWith(input) ? 0 : 1;
+          return aWeight - bWeight;
+        });
+      resolve(results);
+    });
+  }
+
 
   return {
     // When a user runs `git cz`, prompter will
@@ -58,8 +111,10 @@ module.exports = function(options) {
     // to git.
     //
     // By default, we'll de-indent your commit
-    // template and will keep empty lines.
-    prompter: function(cz, commit) {
+      // template and will keep empty lines.
+      prompter: function(cz, commit) {
+      cz.registerPrompt('autocomplete', autocompletePropmpt);
+
       // Let's ask some questions of the user
       // so that we can populate our commit
       // template.
@@ -68,12 +123,14 @@ module.exports = function(options) {
       // You can also opt to use another input
       // collection library if you prefer.
       cz.prompt([
+        // TODO: Convert this to autocomplete
         {
-          type: 'list',
+          type: 'autocomplete',
           name: 'type',
           message: "Select the type of change that you're committing:",
-          choices: choices,
-          default: options.defaultType
+          // choices: choices,
+          // default: options.defaultType
+          source: searchTypes,
         },
         {
           type: 'input',
@@ -116,7 +173,10 @@ module.exports = function(options) {
               filteredSubject.length <= maxSummaryLength(options, answers)
                 ? chalk.green
                 : chalk.red;
-            return color('(' + filteredSubject.length + ') ' + subject);
+
+            var remainingAllowedChars = maxSummaryLength(options, answers) - filteredSubject.length;
+            return color('(' + remainingAllowedChars + '/' +
+              maxSummaryLength(options, answers) + ') ' + subject);
           },
           filter: function(subject) {
             return filterSubject(subject, options.disableSubjectLowerCase);
@@ -126,7 +186,7 @@ module.exports = function(options) {
           type: 'input',
           name: 'body',
           message:
-            'Provide a longer description of the change: (press enter to skip)\n',
+            'Provide a longer description of the change. Insert line breaks with "|||"\n(press enter to skip)\n',
           default: options.defaultBody
         },
         {
@@ -159,34 +219,46 @@ module.exports = function(options) {
             return answers.isBreaking;
           }
         },
-
         {
           type: 'confirm',
           name: 'isIssueAffected',
-          message: 'Does this change affect any open issues?',
+          message: 'Does this change closes any open issues?',
           default: options.defaultIssues ? true : false
         },
-        {
-          type: 'input',
-          name: 'issuesBody',
-          default: '-',
-          message:
-            'If issues are closed, the commit requires a body. Please enter a longer description of the commit itself:\n',
-          when: function(answers) {
-            return (
-              answers.isIssueAffected && !answers.body && !answers.breakingBody
-            );
-          }
-        },
+        // {
+        //   type: 'input',
+        //   name: 'issuesBody',
+        //   default: '-',
+        //   message:
+        //     'If issues are closed, the commit requires a body. Please enter a longer description of the commit itself:\n',
+        //   when: function(answers) {
+        //     return (
+        //       answers.isIssueAffected && !answers.body && !answers.breakingBody
+        //     );
+        //   }
+        // },
         {
           type: 'input',
           name: 'issues',
-          message: 'Add issue references (e.g. "fix #123", "re #123".):\n',
+          message: 'Add issue references (e.g. "#123"):\n',
           when: function(answers) {
             return answers.isIssueAffected;
           },
           default: options.defaultIssues ? options.defaultIssues : undefined
-        }
+        },
+        {
+          type: 'checkbox',
+          name: 'affected',
+          choices: allPackages,
+          messages:  `The packages that this commit has affected (${changedPkgs.length} detected)\n`
+        },
+        {
+          type: 'input',
+          name: 'clickup',
+          message: 'Add related clickup tasks (e.g. Cu 5kvw54)',
+          // TODO: Try and get related task from branch name
+          // default: getTaskFromBranchName(),
+        },
       ]).then(function(answers) {
         var wrapOptions = {
           trim: true,
@@ -203,7 +275,11 @@ module.exports = function(options) {
         var head = answers.type + scope + ': ' + answers.subject;
 
         // Wrap these lines at options.maxLineWidth characters
-        var body = answers.body ? wrap(answers.body, wrapOptions) : false;
+        var body = answers.body ? wrap(answers.body.split('|||').join('\n'), wrapOptions) : false;
+
+        var affected = answers.affected && answers.affected.length
+          ? wrap('Affected packages: ' + answers.affected.join(', '), wrapOptions)
+          : false;
 
         // Apply breaking change prefix, removing it if already present
         var breaking = answers.breaking ? answers.breaking.trim() : '';
@@ -212,9 +288,31 @@ module.exports = function(options) {
           : '';
         breaking = breaking ? wrap(breaking, wrapOptions) : false;
 
-        var issues = answers.issues ? wrap(answers.issues, wrapOptions) : false;
+        var issues = answers.issues
+          ? wrap(
+            answers.issues
+              .split(',')
+              .map(issue => {
+                issue.trim();
+                return `Closes ${issue.startsWith('#') ? '' : '#'}${issue}`;
+              })
+              .join(', '),
+            wrapOptions
+          )
+          : false;
+        var clickup = answers.clickup
+          ? wrap('Related clickup tasks: ' + answers.clickup, wrapOptions)
+          : false;
 
-        commit(filter([head, body, breaking, issues]).join('\n\n'));
+        var footer = false;
+        if (clickup || issues) {
+          const store = [];
+          if (issues) store.push(issues);
+          if (clickup) store.push(clickup);
+          footer = store.join('\n');
+        }
+
+        commit(filter([head, body, breaking, affected, footer]).join('\n\n'));
       });
     }
   };

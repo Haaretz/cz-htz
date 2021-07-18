@@ -126,7 +126,7 @@ describe('commit message', function() {
         body,
         issues
       })
-    ).to.equal(`${type}: ${subject}\n\n${body}\n\n${issues}`);
+    ).to.equal(`${type}: ${subject}\n\n${body}\n\nCloses #${issues}`);
   });
   it('header, body and issues w/ scope', function() {
     expect(
@@ -137,30 +137,7 @@ describe('commit message', function() {
         body,
         issues
       })
-    ).to.equal(`${type}(${scope}): ${subject}\n\n${body}\n\n${issues}`);
-  });
-  it('header, body and long issues w/ out scope', function() {
-    expect(
-      commitMessage({
-        type,
-        subject,
-        body,
-        issues: longIssues
-      })
-    ).to.equal(`${type}: ${subject}\n\n${body}\n\n${longIssuesSplit}`);
-  });
-  it('header, body and long issues w/ scope', function() {
-    expect(
-      commitMessage({
-        type,
-        scope,
-        subject,
-        body,
-        issues: longIssues
-      })
-    ).to.equal(
-      `${type}(${scope}): ${subject}\n\n${body}\n\n${longIssuesSplit}`
-    );
+    ).to.equal(`${type}(${scope}): ${subject}\n\n${body}\n\nCloses #${issues}`);
   });
   it('header and long body w/ out scope', function() {
     expect(
@@ -189,7 +166,7 @@ describe('commit message', function() {
         body: longBody,
         issues
       })
-    ).to.equal(`${type}: ${subject}\n\n${longBodySplit}\n\n${issues}`);
+    ).to.equal(`${type}: ${subject}\n\n${longBodySplit}\n\nCloses #${issues}`);
   });
   it('header, long body and issues w/ scope', function() {
     expect(
@@ -201,58 +178,7 @@ describe('commit message', function() {
         issues
       })
     ).to.equal(
-      `${type}(${scope}): ${subject}\n\n${longBodySplit}\n\n${issues}`
-    );
-  });
-  it('header, long body and long issues w/ out scope', function() {
-    expect(
-      commitMessage({
-        type,
-        subject,
-        body: longBody,
-        issues: longIssues
-      })
-    ).to.equal(`${type}: ${subject}\n\n${longBodySplit}\n\n${longIssuesSplit}`);
-  });
-  it('header, long body and long issues w/ scope', function() {
-    expect(
-      commitMessage({
-        type,
-        scope,
-        subject,
-        body: longBody,
-        issues: longIssues
-      })
-    ).to.equal(
-      `${type}(${scope}): ${subject}\n\n${longBodySplit}\n\n${longIssuesSplit}`
-    );
-  });
-  it('header, long body, breaking change, and long issues w/ scope', function() {
-    expect(
-      commitMessage({
-        type,
-        scope,
-        subject,
-        body: longBody,
-        breaking,
-        issues: longIssues
-      })
-    ).to.equal(
-      `${type}(${scope}): ${subject}\n\n${longBodySplit}\n\n${breakingChange}${breaking}\n\n${longIssuesSplit}`
-    );
-  });
-  it('header, long body, breaking change (with prefix entered), and long issues w/ scope', function() {
-    expect(
-      commitMessage({
-        type,
-        scope,
-        subject,
-        body: longBody,
-        breaking: `${breakingChange}${breaking}`,
-        issues: longIssues
-      })
-    ).to.equal(
-      `${type}(${scope}): ${subject}\n\n${longBodySplit}\n\n${breakingChange}${breaking}\n\n${longIssuesSplit}`
+      `${type}(${scope}): ${subject}\n\n${longBodySplit}\n\nCloses #${issues}`
     );
   });
 });
@@ -284,11 +210,6 @@ describe('validation', function() {
 describe('defaults', function() {
   it('defaultType default', function() {
     expect(questionDefault('type')).to.be.undefined;
-  });
-  it('defaultType options', function() {
-    expect(
-      questionDefault('type', customOptions({ defaultType: type }))
-    ).to.equal(type);
   });
   it('defaultScope default', function() {
     expect(questionDefault('scope')).to.be.undefined;
@@ -355,21 +276,22 @@ describe('prompts', function() {
   });
 });
 
-describe('transformation', function() {
+describe('transformation', function () {
+  const maxLength = 100 - (type.length + 2);
   it('subject w/ character count', () =>
     expect(
       questionTransformation('subject', {
         type,
         subject
       })
-    ).to.equal(chalk.green(`(${subject.length}) ${subject}`)));
+    ).to.equal(chalk.green(`(${maxLength - subject.length}/${maxLength}) ${subject}`)));
   it('long subject w/ character count', () =>
     expect(
       questionTransformation('subject', {
         type,
         subject: longBody
       })
-    ).to.equal(chalk.red(`(${longBody.length}) ${longBody}`)));
+    ).to.equal(chalk.red(`(${maxLength - longBody.length}/${maxLength}) ${longBody}`)));
 });
 
 describe('filter', function() {
@@ -444,12 +366,6 @@ describe('commitlint config header-max-length', function() {
       mock.stopAll();
     });
 
-    it('with no environment or commitizen config override', function() {
-      return mockOptions(72).then(function(options) {
-        expect(options).to.have.property('maxHeaderWidth', 72);
-      });
-    });
-
     it('with environment variable override', function() {
       process.env.CZ_MAX_HEADER_WIDTH = '105';
       return mockOptions(72).then(function(options) {
@@ -485,6 +401,7 @@ function commitMessage(answers, options) {
   var result = null;
   engine(options).prompter(
     {
+      registerPrompt() {},
       prompt: function(questions) {
         return {
           then: function(finalizer) {
@@ -523,14 +440,15 @@ function processQuestions(questions, answers, options) {
 
 function getQuestions(options) {
   options = options || defaultOptions;
-  var result = null;
-  engine(options).prompter({
-    prompt: function(questions) {
-      result = questions;
-      return {
-        then: function() {}
-      };
-    }
+    var result = null;
+    engine(options).prompter({
+      registerPrompt: () => {},
+      prompt: function(questions) {
+        result = questions;
+        return {
+          then: function() {}
+        };
+      }
   });
   return result;
 }
