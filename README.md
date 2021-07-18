@@ -1,26 +1,25 @@
-# cz-conventional-changelog
+# @haaretz/cz-htz
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/commitizen/cz-conventional-changelog.svg)](https://greenkeeper.io/)
+## Installation
 
-Status:
-[![npm version](https://img.shields.io/npm/v/cz-conventional-changelog.svg?style=flat-square)](https://www.npmjs.org/package/cz-conventional-changelog)
-[![npm downloads](https://img.shields.io/npm/dm/cz-conventional-changelog.svg?style=flat-square)](http://npm-stat.com/charts.html?package=cz-conventional-changelog&from=2015-08-01)
-[![Build Status](https://img.shields.io/travis/commitizen/cz-conventional-changelog.svg?style=flat-square)](https://travis-ci.org/commitizen/cz-conventional-changelog)
-
-Part of the [commitizen](https://github.com/commitizen/cz-cli) family. Prompts for [conventional changelog](https://github.com/conventional-changelog/conventional-changelog) standard.
+```sh
+yarn add --dev @haaretz/cz-htz
+# or
+npm install --save-dev @haaretz/cz-htz
+```
 
 ## Configuration
 
 ### package.json
 
-Like commitizen, you specify the configuration of cz-conventional-changelog through the package.json's `config.commitizen` key.
+Like commitizen, you specify the configuration of cz-htz through the package.json's `config.commitizen` key.
 
 ```json5
 {
 // ...  default values
     "config": {
         "commitizen": {
-            "path": "./node_modules/cz-conventional-changelog",
+            "path": "./node_modules/@haaretz/cz-htz",
             "disableScopeLowerCase": false,
             "disableSubjectLowerCase": false,
             "maxHeaderWidth": 100,
