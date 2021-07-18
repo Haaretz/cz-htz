@@ -1,0 +1,6 @@
+{
+  "packages": [
+    "test-pkgs/*"
+  ],
+  "version": "1.0.0"
+}

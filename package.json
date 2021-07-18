@@ -1,7 +1,7 @@
 {
-  "name": "cz-conventional-changelog",
-  "version": "0.0.0-semantically-released.0",
-  "description": "Commitizen adapter following the conventional-changelog format.",
+  "name": "@haaretz/cz-htz",
+  "version": "3.3.0",
+  "description": "Commitizen adapter for Haaretz frontent, with lerna and ClickUP info",
   "main": "index.js",
   "scripts": {
     "commit": "git-cz",
@@ -9,35 +9,41 @@
     "format": "prettier --write *.js",
     "semantic-release": "semantic-release"
   },
-  "homepage": "https://github.com/commitizen/cz-conventional-changelog",
   "repository": {
     "type": "git",
-    "url": "https://github.com/commitizen/cz-conventional-changelog.git"
+    "url": "https://github.com/Haaretz/cz-htz.git"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engineStrict": true,
   "engines": {
     "node": ">= 10"
   },
-  "author": "Jim Cummins <jimthedev@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "chalk": "^2.4.1",
+    "chalk": "^4.1.1",
     "commitizen": "^4.0.3",
     "conventional-commit-types": "^3.0.0",
+    "inquirer-autocomplete-prompt": "^1.4.0",
     "lodash.map": "^4.5.1",
     "longest": "^2.0.1",
     "word-wrap": "^1.0.3"
   },
   "devDependencies": {
     "@types/chai": "^4.1.7",
-    "@types/mocha": "^5.2.7",
+    "@types/mocha": "^8.2.3",
     "chai": "^4.2.0",
-    "cosmiconfig": "^5.2.1",
-    "mocha": "^6.2.0",
+    "cosmiconfig": "^7.0.0",
+    "lerna": "^4.0.0",
+    "mocha": "^9.0.2",
     "mock-require": "^3.0.3",
-    "prettier": "^1.15.3",
-    "semantic-release": "^15.13.3",
-    "semver": "^6.2.0"
+    "prettier": "^2.3.2",
+    "semantic-release": "^17.4.4",
+    "semver": "^7.3.5"
+  },
+  "peerDependencies": {
+    "lerna": "^4.0.0"
   },
   "optionalDependencies": {
     "@commitlint/load": ">6.1.1"
