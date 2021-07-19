@@ -5,6 +5,7 @@ var { execSync, } = require('child_process');
 var wrap = require('word-wrap');
 var map = require('lodash.map');
 var chalk = require('chalk');
+var gitBranch = require('git-branch');
 var autocompletePropmpt = require('inquirer-autocomplete-prompt');
 
 const doubleWidthEmojis = [
@@ -14,6 +15,9 @@ const doubleWidthEmojis = [
   'revert',
   'peerDependencies',
 ];
+
+const branchName = gitBranch.sync();
+const clickupTaskFromBranch = branchName?.match(/cu[-_][a-z0-9-]+/i)?.[0] || '';
 
 const changedFiles = execSync(
   'git diff --cached --name-only',
@@ -256,8 +260,7 @@ module.exports = function(options) {
           type: 'input',
           name: 'clickup',
           message: 'Add related clickup tasks (e.g. Cu 5kvw54)',
-          // TODO: Try and get related task from branch name
-          // default: getTaskFromBranchName(),
+          default: clickupTaskFromBranch,
         },
       ]).then(function(answers) {
         var wrapOptions = {
