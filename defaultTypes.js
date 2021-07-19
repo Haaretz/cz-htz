@@ -68,8 +68,8 @@ module.exports = {
     title: 'Revert',
     emoji: '🗑',
   },
-  WIP: {
-    value: 'WIP',
+  wip: {
+    value: 'wip',
     description: 'An incomplete work-in-progress',
     title: 'WIP',
     emoji: '🚧',
