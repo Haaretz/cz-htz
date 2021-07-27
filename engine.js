@@ -25,7 +25,7 @@ const changedFiles = execSync(
 ).split('\n').map(path.normalize);
 
 const packagesInfo = JSON.parse(execSync(
-  'lerna list --json',
+  'lerna list --all --json',
   { encoding: 'utf8', stdio: 'pipe', }
 ));
 
