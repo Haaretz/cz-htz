@@ -25,7 +25,7 @@ const changedFiles = execSync(
 ).split('\n').map(path.normalize);
 
 const packagesInfo = JSON.parse(execSync(
-  'yarn lerna list --all --json',
+  'npx lerna list --all --json',
   { encoding: 'utf8', stdio: 'pipe', }
 ));
 
