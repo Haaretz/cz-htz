@@ -3,6 +3,7 @@
   "version": "4.0.0",
   "description": "Commitizen adapter for Haaretz frontent, with lerna and ClickUP info",
   "main": "index.js",
+  "packageManager": "pnpm@6.30.0",
   "scripts": {
     "commit": "git-cz",
     "test": "mocha *.test.js",
@@ -18,7 +19,8 @@
   },
   "engineStrict": true,
   "engines": {
-    "node": ">= 10"
+    "node": ">= 10",
+    "pnpm": ">=6.30.0"
   },
   "license": "MIT",
   "dependencies": {
@@ -43,9 +45,6 @@
     "prettier": "^2.3.2",
     "semantic-release": "^17.4.4",
     "semver": "^7.3.5"
-  },
-  "peerDependencies": {
-    "lerna": "^4.0.0"
   },
   "optionalDependencies": {
     "@commitlint/load": ">6.1.1"
