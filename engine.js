@@ -1,6 +1,6 @@
 'format cjs';
 
-// var path = require('path');
+var path = require('path');
 var { execSync, } = require('child_process');
 var wrap = require('word-wrap');
 var map = require('lodash.map');
@@ -19,35 +19,26 @@ const doubleWidthEmojis = [
 const branchName = gitBranch.sync();
 const clickupTaskFromBranch = branchName?.match(/cu[-_][a-z0-9-]+/i)?.[0] || '';
 
-// const changedFiles = execSync(
-//   'git diff --cached --name-only',
-//   { encoding: 'utf8', stdio: 'pipe', }
-// ).split('\n').map(path.normalize);
-//
+const stagedFiles = execSync(
+  'git diff --cached --name-only',
+  { encoding: 'utf8', stdio: 'pipe', }
+).trim().split('\n').map(filePath => path.resolve(filePath));
+
 const [ _rootPkg, ...changedPkgs ] = JSON.parse(execSync(
   'pnpm ls --depth -1 --json --filter "[HEAD]"',
   { encoding: 'utf8', stdio: 'pipe', }
 ))
+  .filter(pkg => stagedFiles.some(changedFile => changedFile.startsWith(pkg.path)))
   .map(pkg => pkg.name);
-//
-// const changedPkgs = packagesInfo
-//   .filter(({ path, }) => {
-//     const pkgPrefix = path.relative('.', path) + path.sep;
-//     for (const changedFile of changedFiles) {
-//       if (changedFile.indexOf(pkgPrefix) === 0) return true;
-//     }
-//     return false;
-//   })
-//   .map(pkg => pkg.name);
 
 const [ _root, ...allPackages ] = JSON.parse(execSync(
   'pnpm ls -rw --depth -1 --json',
   { encoding: 'utf8', stdio: 'pipe', }
 ))
-map(({ name, }) => ({
-  name,
-  checked: changedPkgs.includes(name),
-}));
+  .map(({ name, }) => ({
+    name,
+    checked: changedPkgs.includes(name),
+  }));
 
 var filter = function(array) {
   return array.filter(function(x) {
