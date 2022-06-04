@@ -25,14 +25,14 @@ const stagedFiles = execSync(
 ).trim().split('\n').map(filePath => path.resolve(filePath));
 
 const [ _rootPkg, ...changedPkgs ] = JSON.parse(execSync(
-  'pnpm ls --depth -1 --json --filter "[HEAD]"',
+  'pnpm ls --recursive --depth -1 --json --filter "[HEAD]"',
   { encoding: 'utf8', stdio: 'pipe', }
 ))
   .filter(pkg => stagedFiles.some(changedFile => changedFile.startsWith(pkg.path)))
   .map(pkg => pkg.name);
 
 const [ _root, ...allPackages ] = JSON.parse(execSync(
-  'pnpm ls -rw --depth -1 --json',
+  'pnpm ls --recursive --depth -1 --json',
   { encoding: 'utf8', stdio: 'pipe', }
 ))
   .map(({ name, }) => ({
