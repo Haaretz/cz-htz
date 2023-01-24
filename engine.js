@@ -1,5 +1,6 @@
 'format cjs';
 
+var fs = require('fs');
 var path = require('path');
 var { execSync, spawnSync } = require('child_process');
 var wrap = require('word-wrap');
@@ -96,6 +97,8 @@ module.exports = function (options) {
     // By default, we'll de-indent your commit
     // template and will keep empty lines.
     prompter: function (cz, commit) {
+      const repoRootDir = process.cwd();
+
       (async () => {
         const changedPkgs = (await git.getChangedPackagesSinceRef({
           cwd: process.cwd(),
@@ -121,7 +124,7 @@ module.exports = function (options) {
         // See inquirer.js docs for specifics.
         // You can also opt to use another input
         // collection library if you prefer.
-        cz.prompt([
+        await cz.prompt([
           // TODO: Convert this to autocomplete
           {
             type: 'autocomplete',
@@ -312,7 +315,91 @@ module.exports = function (options) {
 
           commit(filter([head, body, breaking, affected, footer]).join('\n\n'));
         });
+
+        const commitMessage = JSON.stringify(execSync(
+          'git log -1 --pretty=%B',
+          { encoding: 'utf8', stdio: 'pipe', }
+        ))
+
+        const [, commitType, message, breaking, packages] = /^"(\w+(?=[:\(])).*?:\s(?:(.*?)(?:BREAKING CHANGE:\s(.+))?(?=Affected packages:\s))(?:Affected packages:\s(.*?(?=\\n\\n)))/gm.exec(commitMessage) || []
+
+        const bumpLevelByCommitType = {
+          feat: 'minor',
+          fix: 'patch',
+          docs: false,
+          style: false,
+          refactor: false,
+          perf: 'patch',
+          test: false,
+          build: 'patch',
+          ci: false,
+          chore: false,
+          revert: false,
+          wip: false,
+          breakingChange: 'major'
+        }
+        bumpLevel = breaking ? bumpLevelByCommitType['breakingChange'] : bumpLevelByCommitType[commitType];
+
+        if (!bumpLevel || !message || !packages) {
+          process.exit(0)
+        }
+
+        const commitHeadline = message.split('\\n')[0].trim()
+
+        const slug = commitHeadline.replace(/\W+/g, '-').toLowerCase()
+
+        const changesetMap = new Map()
+
+        const lines = packages.replaceAll('\\n', '');
+
+        lines
+          .trim()
+          .split(', ')
+          .forEach(pkg => {
+            const existingBump = changesetMap.get(pkg)
+            changesetMap.set(
+              pkg,
+              existingBump ? getGreaterBump(existingBump, bumpLevel) : bumpLevel
+            )
+          })
+
+
+        const changesetContent = `---
+${Array.from(changesetMap.entries())
+            .map(([pkg, bumpLevel]) => `"${pkg}": ${bumpLevel}`)
+            .join('\n')}
+---
+${commitHeadline}
+
+${breaking?.split('\\n')[0].trim()}
+`
+
+        fs.writeFileSync(
+          path.resolve(repoRootDir, '.changeset', `${slug}.md`),
+          changesetContent
+        )
+
+        execSync(
+          `git add .changeset/${slug}.md`,
+          { encoding: 'utf8', stdio: 'pipe', }
+        )
+
+        execSync(
+          `git commit --amend -C HEAD --no-verify`,
+          { encoding: 'utf8', stdio: 'pipe', }
+        )
+
+        process.exit(0)
       })()
+
+
     }
   };
 };
+
+
+function getGreaterBump(a, b) {
+  // By chance, the lexicographic order is exactly reversed from its meaning,
+  // so we can just invert the order
+  return a < b ? a : b
+}
