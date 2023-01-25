@@ -1,6 +1,6 @@
 {
   "name": "@haaretz/cz-htz",
-  "version": "4.1.0",
+  "version": "5.0.0",
   "description": "Commitizen adapter for Haaretz frontent, with lerna and ClickUP info",
   "main": "index.js",
   "packageManager": "pnpm@6.30.0",
