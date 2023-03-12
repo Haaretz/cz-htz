@@ -97,9 +97,15 @@ module.exports = function (options) {
     // template and will keep empty lines.
     prompter: function (cz, commit) {
       (async () => {
-        const changedPkgs = (await git.getChangedPackagesSinceRef({
+        const changedBranchPkgs = (await git.getChangedPackagesSinceRef({
           cwd: process.cwd(),
           ref: config.baseBranch,
+          changedFilePatterns: config.changedFilePatterns,
+        })).map(changedPkg => changedPkg.packageJson.name);
+
+        const changedCommitPkgs = (await git.getChangedPackagesSinceRef({
+          cwd: process.cwd(),
+          ref: 'HEAD~0',
           changedFilePatterns: config.changedFilePatterns,
         })).map(changedPkg => changedPkg.packageJson.name);
 
@@ -109,7 +115,7 @@ module.exports = function (options) {
         ))
           .map(({ name, }) => ({
             name,
-            checked: changedPkgs.includes(name),
+            checked: changedCommitPkgs.includes(name),
           }));
 
         cz.registerPrompt('autocomplete', autocompletePropmpt);
@@ -245,12 +251,12 @@ module.exports = function (options) {
             },
             default: options.defaultIssues ? options.defaultIssues : undefined
           },
-          {
-            type: 'checkbox',
-            name: 'affected',
-            choices: allPackages,
-            messages: `The packages that this commit has affected (${changedPkgs.length} detected)\n`
-          },
+          // {
+          //   type: 'checkbox',
+          //   name: 'affected',
+          //   choices: allPackages,
+          //   messages: `The packages that this commit has affected (${changedCommitPkgs.length} detected)\n`
+          // },
           {
             type: 'input',
             name: 'clickup',
@@ -275,8 +281,12 @@ module.exports = function (options) {
           // Wrap these lines at options.maxLineWidth characters
           var body = answers.body ? wrap(answers.body.split('|||').join('\n'), wrapOptions) : false;
 
-          var affected = answers.affected && answers.affected.length
-            ? wrap('Affected packages: ' + answers.affected.join(', '), wrapOptions)
+          var affectedCommit = changedCommitPkgs && changedCommitPkgs.length
+            ? wrap('Affected packages of this commit: ' + changedCommitPkgs.join(', '), wrapOptions)
+            : false;
+
+          var affectedBranch = changedBranchPkgs && changedBranchPkgs.length
+            ? wrap('Affected packages of this branch: ' + changedBranchPkgs.join(', '), wrapOptions)
             : false;
 
           // Apply breaking change prefix, removing it if already present
@@ -310,7 +320,7 @@ module.exports = function (options) {
             footer = store.join('\n');
           }
 
-          commit(filter([head, body, breaking, affected, footer]).join('\n\n'));
+          commit(filter([head, body, breaking, affectedCommit, affectedBranch, footer]).join('\n\n'));
         });
       })()
     }
